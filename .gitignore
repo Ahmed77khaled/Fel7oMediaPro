@@ -1,0 +1,21 @@
+# Environment variables
+.env
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Temporary files and caches
+temp/*
+!temp/.gitkeep
+data/*.json
+!data/.gitkeep
+
+# Downloaded media
+*.mp3
+*.flac
+*.m4a
+
+# Local runtime logs
+*.log

@@ -4,6 +4,8 @@ import time
 import json
 import secrets
 import threading
+import http.server
+import socketserver
 import telebot
 from telebot import types
 
@@ -1125,11 +1127,35 @@ def inline_search(iq):
     except telebot.apihelper.ApiTelegramException as error:
         print(f"[Inline] Ignored expired query: {error}")
 
+def start_health_check_server():
+    port = int(os.environ.get("PORT", "8000"))
+    class HealthHandler(http.server.BaseHTTPRequestHandler):
+        def do_GET(self):
+            self.send_response(200)
+            self.send_header("Content-type", "text/plain; charset=utf-8")
+            self.end_headers()
+            self.wfile.write(b"Fel7o Media Pro is running 24/7!")
+
+        def log_message(self, format, *args):
+            return  # Suppress noisy logs
+
+    def _serve():
+        try:
+            socketserver.TCPServer.allow_reuse_address = True
+            with socketserver.TCPServer(("0.0.0.0", port), HealthHandler) as httpd:
+                print(f"[HealthCheck] Server listening on 0.0.0.0:{port}")
+                httpd.serve_forever()
+        except Exception as err:
+            print(f"[HealthCheck] Notice: {err}")
+
+    threading.Thread(target=_serve, daemon=True, name="HealthCheckServer").start()
+
 # ── Startup ───────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     print("[Fel7o Media Pro] Starting...")
     config.validate_runtime_config()
     patch_spotify()
+    start_health_check_server()
     
     try:
         bot.set_my_commands([
@@ -1157,3 +1183,4 @@ if __name__ == "__main__":
         except Exception as e:
             print("[polling error]", e)
             time.sleep(5)
+

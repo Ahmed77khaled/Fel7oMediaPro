@@ -1180,12 +1180,25 @@ if __name__ == "__main__":
     if config.ADMIN_CHAT_ID:
         try:
             server_name = "GitHub Cloud ☁️" if os.environ.get("GITHUB_ACTIONS") else "السحابة السحابية ☁️"
-            msg_text = (
-                "\u200f🚀 *تم تشغيل بوت «Fel7o Media Pro» بنجاح!*\n\n"
-                f"\u200f☁️ *السيرفر:* {server_name}\n"
-                "\u200f✅ *الحالة:* متصل ويعمل 24/7 بشكل سحابي مستقل عن جهازك."
+            caption = (
+                "\u200f✨ *FEL7O MEDIA PRO* • 24/7 Cloud ✨\n"
+                "━━━━━━━━━━━━━━━━━━━━\n"
+                "\u200f🚀 *تم تشغيل البوت بنجاح في السحابة!*\n\n"
+                f"\u200f🌐 *السيرفر:* {server_name}\n"
+                "\u200f⚡ *الحالة:* متصل ومستقر 24/7\n"
+                "\u200f💻 *التشغيل:* سحابي مستقل تماماً عن جهازك\n"
+                "━━━━━━━━━━━━━━━━━━━━\n"
+                "\u200f🎵 جاهز لاستقبال طلبات البحث والتحميل بأعلى جودة!"
             )
-            bot.send_message(config.ADMIN_CHAT_ID, msg_text, parse_mode="Markdown")
+            logo_path = os.path.join(config.BASE_DIR, "bot_logo.jpg")
+            if not os.path.exists(logo_path):
+                logo_path = os.path.join(config.BASE_DIR, "bot_logo_full.png")
+
+            if os.path.exists(logo_path):
+                with open(logo_path, "rb") as photo_file:
+                    bot.send_photo(config.ADMIN_CHAT_ID, photo=photo_file, caption=caption, parse_mode="Markdown")
+            else:
+                bot.send_message(config.ADMIN_CHAT_ID, caption, parse_mode="Markdown")
         except Exception as e:
             print(f"[Notify Admin Error] {e}")
 

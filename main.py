@@ -211,19 +211,12 @@ def get_main_menu_markup(lang="ar"):
         types.InlineKeyboardButton("📋 " + i18n.get_text(lang, "btn_search_playlist"), switch_inline_query_current_chat=".pl "),
         types.InlineKeyboardButton("👤 " + i18n.get_text(lang, "btn_search_artist"), switch_inline_query_current_chat=".art "),
     )
-    mk.add(types.InlineKeyboardButton("🏷️ " + i18n.get_text(lang, "btn_search_label"), switch_inline_query_current_chat=".lbl "))
-    mk.add(types.InlineKeyboardButton("🌐 " + i18n.get_text(lang, "btn_global_search"), switch_inline_query_current_chat=" "))
+    # Keep the reference bot's compact six-search layout while retaining Fel7o's own labels.
     mk.add(
-        types.InlineKeyboardButton("❤️ " + i18n.get_text(lang, "btn_inbox"), callback_data="menu_inbox"),
-        types.InlineKeyboardButton("🕘 الأخيرة", callback_data="menu_recent"),
+        types.InlineKeyboardButton("🏷️ " + i18n.get_text(lang, "btn_search_label"), switch_inline_query_current_chat=".lbl "),
+        types.InlineKeyboardButton("🌐 " + i18n.get_text(lang, "btn_global_search"), switch_inline_query_current_chat=" "),
     )
-    mk.add(
-        types.InlineKeyboardButton("⚙️ " + i18n.get_text(lang, "btn_settings"), callback_data="menu_settings"),
-    )
-    mk.add(
-        types.InlineKeyboardButton("ℹ️ " + i18n.get_text(lang, "btn_help"), callback_data="menu_help"),
-        types.InlineKeyboardButton("🌐 " + i18n.get_text(lang, "btn_lang"), callback_data="toggle_lang")
-    )
+    mk.add(types.InlineKeyboardButton("❌", callback_data="menu_close"))
     return mk
 
 # ── Handlers ──────────────────────────────────────────────────────────────────
@@ -242,7 +235,7 @@ def h_start(msg):
     text = i18n.get_text(lang, "welcome")
     markup = get_main_menu_markup(lang)
     try:
-        bot.send_message(chat_id, "✅ تم تحديث الواجهة.", reply_markup=types.ReplyKeyboardRemove())
+        # The reference flow shows one clean welcome card with the inline menu.
         bot.send_message(chat_id, text, reply_markup=markup)
     except Exception:
         bot.send_message(chat_id, text)
@@ -283,6 +276,18 @@ def h_info(msg):
         "Support: @fel7o_support"
     )
     bot.send_message(chat_id, text)
+
+@bot.callback_query_handler(func=lambda c: c.data == "menu_close")
+def cb_menu_close(call):
+    """Close the compact home menu, matching the reference bot's red close button."""
+    try:
+        bot.answer_callback_query(call.id)
+        bot.delete_message(call.message.chat.id, call.message.message_id)
+    except Exception:
+        try:
+            bot.answer_callback_query(call.id, "تم الإغلاق")
+        except Exception:
+            pass
 
 @bot.callback_query_handler(func=lambda c: c.data == "menu_home")
 def cb_menu_home(call):
@@ -1140,8 +1145,11 @@ def inline_search(iq):
         download_link = f"https://t.me/{BOT_USERNAME}?start=dl_{request_id}"
         desc = f"Artist: {artist}\nAlbum: {album}"
         content = types.InputTextMessageContent(
-            f"🎵 *{title}*\n👤 {artist}\n💿 {album}\n⏱ {duration}",
-            parse_mode="Markdown",
+            f"🎵 <b>{html_text(title)}</b>\n"
+            f"👤 {html_text(artist)}\n"
+            f"💿 {html_text(album)}\n"
+            f"⏱ {html_text(duration)}",
+            parse_mode="HTML",
         )
 
         mk = types.InlineKeyboardMarkup()

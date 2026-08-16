@@ -18,9 +18,12 @@ def search_tracks(query: str, limit: int = 5, mode: str = "track") -> list:
         'noplaylist': True,
         'extractor_args': {
             'youtube': {
-                'player_client': ['android', 'ios', 'web']
+                'player_client': ['android', 'ios', 'mweb', 'web_embedded'],
+                'player_skip': ['webpage', 'configs'],
             }
-        }
+        },
+        'nocheckcertificate': True,
+        'geo_bypass': True,
     }
     
     results = []

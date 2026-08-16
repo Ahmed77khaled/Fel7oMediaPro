@@ -40,9 +40,17 @@ def download_video(url: str) -> dict:
         'format': 'bestvideo+bestaudio/best',
         'outtmpl': output_template,
         'merge_output_format': 'mp4',
+        'extractor_args': {
+            'youtube': {
+                'player_client': ['android', 'ios', 'mweb', 'web_embedded'],
+                'player_skip': ['webpage', 'configs'],
+            }
+        },
         'quiet': True,
         'no_warnings': True,
         'noplaylist': True,
+        'nocheckcertificate': True,
+        'geo_bypass': True,
     }
 
     try:
@@ -79,6 +87,12 @@ def download_podcast(url: str) -> dict:
     ydl_opts = {
         'format': 'bestaudio/best',
         'outtmpl': output_template,
+        'extractor_args': {
+            'youtube': {
+                'player_client': ['android', 'ios', 'mweb', 'web_embedded'],
+                'player_skip': ['webpage', 'configs'],
+            }
+        },
         'postprocessors': [{
             'key': 'FFmpegExtractAudio',
             'preferredcodec': 'mp3',
@@ -87,6 +101,8 @@ def download_podcast(url: str) -> dict:
         'quiet': True,
         'no_warnings': True,
         'noplaylist': True,
+        'nocheckcertificate': True,
+        'geo_bypass': True,
     }
 
     try:
@@ -165,7 +181,8 @@ def download_audio(target_url_or_id: str, quality: str = config.DEFAULT_BITRATE,
         'outtmpl': output_template,
         'extractor_args': {
             'youtube': {
-                'player_client': ['android', 'ios', 'web']
+                'player_client': ['android', 'ios', 'mweb', 'web_embedded'],
+                'player_skip': ['webpage', 'configs'],
             }
         },
         'postprocessors': postprocessors,
@@ -173,6 +190,8 @@ def download_audio(target_url_or_id: str, quality: str = config.DEFAULT_BITRATE,
         'quiet': True,
         'no_warnings': True,
         'noplaylist': True,
+        'nocheckcertificate': True,
+        'geo_bypass': True,
     }
 
     try:

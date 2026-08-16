@@ -1,74 +1,60 @@
-# 🚀 دليل نشر وتشغيل Fel7o Media Pro
+# دليل تشغيل ونشر Fel7o Media
 
-يوضح هذا الدليل كيفية تشغيل البوت محلياً أو رفعه على سيرفر VPS. للتشغيل المجاني المستمر راجع `DEPLOY_ORACLE_FREE.md`.
+هذا المشروع يستخدم GitHub لحفظ الكود ومراجعة التغييرات فقط. لا تستخدم GitHub Actions كسيرفر 24/7؛ ملف `.github/workflows/bot.yml` يشغّل فحوصات البناء ولا يشغّل البوت باستمرار.
 
----
+## التشغيل المحلي
 
-## 1. التشغيل المحلي (Local Execution)
-1. تأكد من تثبيت بايثون (Python 3.10+) وتثبيت `ffmpeg` على جهازك وإضافته لـ Environment Variables.
-2. افتح مجلد المشروع وثبت الاعتمادات:
-   ```bash
-   pip install -r requirements.txt
-   ```
-3. قم بإنشاء ملف `.env` وقم بتعبئة التوكنات:
-   ```env
-   BOT_TOKEN=your_telegram_bot_token
-   BOT_USERNAME=your_bot_username
-   SPOTIFY_CLIENT_ID=your_spotify_client_id
-   SPOTIFY_CLIENT_SECRET=your_spotify_client_secret
-   SPOTIFY_REDIRECT_URI=http://127.0.0.1:9876/callback
-   ADMIN_CHAT_ID=رقم_آي دي_التليجرام_الخاص_بك
-   ```
-4. شغّل البوت:
-   ```bash
-   python main.py
-   ```
+ثبّت Python 3.10 أو أحدث، و`ffmpeg`، ثم ثبّت الاعتمادات:
 
----
+```bash
+pip install -r requirements.txt
+```
 
-## 2. النشر على Oracle Cloud Free (الموصى به)
-اتبع `DEPLOY_ORACLE_FREE.md`. يحتوي المشروع على `deploy/oracle/install.sh` وخدمة `systemd` جاهزة لإبقاء البوت يعمل تلقائياً بعد إعادة تشغيل السيرفر.
+انسخ `.env.example` إلى `.env` وضع **توكنًا جديدًا** أصدرته من BotFather بعد إلغاء أي توكن ظهر في المستودع أو المحادثة. لا تضع `.env` في GitHub.
 
----
+```env
+BOT_TOKEN=your_new_telegram_bot_token
+BOT_USERNAME=your_bot_username
+ADMIN_CHAT_ID=0
+DEFAULT_BITRATE=320
+```
 
-## 3. النشر على Render.com
-1. ارفع مشروعك على مستودع خاص أو عام على GitHub.
-2. اذهب إلى [Render Dashboard](https://dashboard.render.com/) واضغط على **New +** ثم **Background Worker** (أو Web Service).
-3. اربط مستودع GitHub الخاص بك.
-4. املأ الإعدادات التالية:
-   * **Name:** `fel7o-media-pro`
-   * **Runtime:** `Python 3`
-   * **Build Command:** `pip install -r requirements.txt`
-   * **Start Command:** `python main.py`
-5. أضف متغيرات البيئة (Environment Variables) في لوحة تحكم Render بنفس أسماء ملف `.env`:
-   * `BOT_TOKEN`
-   * `SPOTIFY_CLIENT_ID`
-   * `SPOTIFY_CLIENT_SECRET`
-   * `ADMIN_CHAT_ID`
-6. اضغط **Create Background Worker** وسيعمل البوت 24/7!
+شغّل التطبيق محليًا عبر polling:
 
----
+```bash
+python main.py
+```
 
-## 4. النشر على Heroku
-1. ثبت Heroku CLI وسجل الدخول: `heroku login`
-2. أنشئ تطبيقاً جديداً:
-   ```bash
-   heroku create fel7o-media-pro
-   ```
-3. أضف حزم البايثون و FFMpeg:
-   ```bash
-   heroku buildpacks:add heroku/python
-   heroku buildpacks:add https://github.com/jonathanong/heroku-buildpack-ffmpeg-latest.git
-   ```
-4. ارفع المتغيرات السرية:
-   ```bash
-   heroku config:set BOT_TOKEN=your_token
-   heroku config:set SPOTIFY_CLIENT_ID=your_id
-   heroku config:set SPOTIFY_CLIENT_SECRET=your_secret
-   heroku config:set ADMIN_CHAT_ID=your_id
-   ```
-5. انشر الكود:
-   ```bash
-   git push heroku main
-   heroku ps:scale worker=1
-   ```
+## النشر المجاني على Render Web Service
+
+ملف `render.yaml` يجهز Docker Web Service بخطة `free` وHealth Check على `/health`. أنشئ Web Service من المستودع، أو استخدم Blueprint، ثم أضف الأسرار من لوحة Render بدل كتابتها في الملفات.
+
+| المتغير | القيمة المطلوبة |
+|---|---|
+| `BOT_TOKEN` | توكن Telegram الجديد فقط |
+| `BOT_USERNAME` | اسم البوت دون `@` |
+| `WEBHOOK_URL` | رابط الخدمة العام، مثل `https://your-service.onrender.com`، دون `/telegram`؛ التطبيق يضيف المسار تلقائيًا |
+| `WEBHOOK_SECRET` | قيمة عشوائية طويلة لا تُشارك علنًا |
+| `ADMIN_CHAT_ID` | رقم حساب الإدارة، أو `0` لتعطيل أوامر الإدارة |
+| `DEFAULT_BITRATE` | `128` أو `320` أو `flac` |
+| `SPOTIFY_CLIENT_ID` و`SPOTIFY_CLIENT_SECRET` | اختياريان لخصائص Spotify فقط |
+
+عند وجود `WEBHOOK_URL` يعمل التطبيق بوضع Webhook ولا يشغّل polling. عند تركه فارغًا يعمل polling، وهو مناسب للتجربة المحلية. يجب اختبار `/health` أولًا، ثم إرسال `/start` للبوت.
+
+> الخطة المجانية لبعض الخدمات المُدارة قد تدخل في وضع السكون أو تفرض حدودًا على CPU والتخزين وحجم الملفات. لذلك فهي مناسبة للتجربة والاستخدام الخفيف، وليست ضمانًا لتشغيل 24/7 أو لتنزيلات كبيرة بلا حدود.
+
+## النشر على Oracle Cloud Free أو VPS
+
+للتشغيل المستمر مع polling وSpotify monitor، استخدم `DEPLOY_ORACLE_FREE.md` أو خدمة VPS تملكها. احفظ الأسرار في متغيرات البيئة، وشغّل `python main.py` عبر systemd أو Docker. لا تستخدم القيم الافتراضية القديمة في أي ملف.
+
+## فحص قبل النشر
+
+نفّذ الأوامر التالية من جذر المشروع:
+
+```bash
+python3 -m compileall -q .
+python3 tests/test_security_and_formatting.py
+git diff --check
+```
+
+إذا ظهر أي توكن في تاريخ Git، فإلغاؤه وتدويره يظل ضروريًا حتى بعد حذف القيمة من آخر commit؛ حذف السجل القديم يحتاج عملية تنظيف تاريخ وforce-push منفصلة بعد أخذ نسخة احتياطية.

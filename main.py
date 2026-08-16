@@ -2,6 +2,7 @@ import sys
 import os
 import time
 import json
+import html
 import secrets
 import threading
 import http.server
@@ -21,6 +22,9 @@ import downloader
 import spotify_auth
 import i18n
 from download_queue import DownloadQueue
+
+# Validate secrets before constructing any external client.
+config.validate_runtime_config()
 
 bot             = telebot.TeleBot(config.BOT_TOKEN, parse_mode="Markdown")
 sp_callback_srv = spotify_auth.SpotifyCallbackServer(bot, port=9876)
@@ -42,6 +46,13 @@ SEARCH_CACHE_TTL_SECONDS = 5 * 60
 SEARCH_CACHE_MAX_ENTRIES = 64
 
 BOT_USERNAME  = config.BOT_USERNAME or "Fel7oMediaPro"
+
+
+def html_text(value) -> str:
+    """Escape user/platform metadata before placing it in Telegram HTML messages."""
+    return html.escape(str(value or ""), quote=False)
+
+
 INLINE_CACHE_LOCK = threading.Lock()
 BATCH_CACHE_LOCK = threading.Lock()
 BATCH_RUNNING = set()
@@ -443,11 +454,23 @@ def send_podcast(chat_id, url, status_msg_id=None):
     update_status("🚀 Uploading podcast audio...")
     try:
         with open(file_path, 'rb') as audio:
-            bot.send_audio(chat_id, audio, caption=f"🎙️ *{title}*\n⚡ Via @{BOT_USERNAME}", title=title, performer="Podcast", duration=duration)
+            podcast_caption = (
+                f"🎙️ <b>{html_text(title)}</b>\n"
+                f"⚡ Via @{html_text(BOT_USERNAME)}"
+            )
+            bot.send_audio(
+                chat_id,
+                audio,
+                caption=podcast_caption,
+                parse_mode="HTML",
+                title=title,
+                performer="Podcast",
+                duration=duration,
+            )
         if status_msg_id:
             bot.delete_message(chat_id, status_msg_id)
     except Exception as e:
-        bot.send_message(chat_id, f"❌ Error sending podcast: {e}")
+        bot.send_message(chat_id, f"❌ Error sending podcast: {e}", parse_mode=None)
 
 def send_video(chat_id, url, status_msg_id=None):
     lang = get_user_lang(chat_id)
@@ -473,11 +496,21 @@ def send_video(chat_id, url, status_msg_id=None):
     update_status("🚀 Uploading video...")
     try:
         with open(file_path, 'rb') as video:
-            bot.send_video(chat_id, video, caption=f"🎬 *{title}*\n⚡ Via @{BOT_USERNAME}", duration=duration)
+            video_caption = (
+                f"🎬 <b>{html_text(title)}</b>\n"
+                f"⚡ Via @{html_text(BOT_USERNAME)}"
+            )
+            bot.send_video(
+                chat_id,
+                video,
+                caption=video_caption,
+                parse_mode="HTML",
+                duration=duration,
+            )
         if status_msg_id:
             bot.delete_message(chat_id, status_msg_id)
     except Exception as e:
-        bot.send_message(chat_id, f"❌ Error sending video: {e}")
+        bot.send_message(chat_id, f"❌ Error sending video: {e}", parse_mode=None)
 
 def send_audio(chat_id, query, quality, status_msg_id=None, spotify_meta=None):
     lang = get_user_lang(chat_id)
@@ -500,11 +533,11 @@ def send_audio(chat_id, query, quality, status_msg_id=None, spotify_meta=None):
         err = res.get('error', 'Unknown error')
         if status_msg_id:
             try:
-                bot.edit_message_text(f"❌ Download failed: {err}", chat_id, status_msg_id)
+                bot.edit_message_text(f"❌ Download failed: {err}", chat_id, status_msg_id, parse_mode=None)
             except Exception:
                 pass
         else:
-            bot.send_message(chat_id, f"❌ Download failed: {err}")
+            bot.send_message(chat_id, f"❌ Download failed: {err}", parse_mode=None)
         return False
 
     update_status(2)
@@ -519,10 +552,10 @@ def send_audio(chat_id, query, quality, status_msg_id=None, spotify_meta=None):
     q_used    = res['quality']
 
     caption = (
-        f"🎵 *{title}*\n"
-        f"👤 {artist}\n"
-        f"🎚 Quality: `{q_label(q_used)}`\n"
-        f"⚡ Via @{BOT_USERNAME}"
+        f"🎵 <b>{html_text(title)}</b>\n"
+        f"👤 {html_text(artist)}\n"
+        f"🎚 Quality: <code>{html_text(q_label(q_used))}</code>\n"
+        f"⚡ Via @{html_text(BOT_USERNAME)}"
     )
 
     try:
@@ -533,6 +566,7 @@ def send_audio(chat_id, query, quality, status_msg_id=None, spotify_meta=None):
                         chat_id,
                         audio,
                         caption=caption,
+                        parse_mode="HTML",
                         duration=duration,
                         performer=artist,
                         title=title,
@@ -543,6 +577,7 @@ def send_audio(chat_id, query, quality, status_msg_id=None, spotify_meta=None):
                     chat_id,
                     audio,
                     caption=caption,
+                    parse_mode="HTML",
                     duration=duration,
                     performer=artist,
                     title=title
@@ -554,7 +589,7 @@ def send_audio(chat_id, query, quality, status_msg_id=None, spotify_meta=None):
                 pass
     except Exception as e:
         print(f"[Send Error] {e}")
-        bot.send_message(chat_id, f"❌ Error sending file: {e}")
+        bot.send_message(chat_id, f"❌ Error sending file: {e}", parse_mode=None)
         return False
     record_recent_download(chat_id, title, artist, query)
     return True
@@ -566,7 +601,8 @@ def enqueue_download(chat_id, label, action):
     markup.add(types.InlineKeyboardButton("✖️ إلغاء من الانتظار", callback_data=f"queue_cancel:{job.job_id}"))
     bot.send_message(
         chat_id,
-        f"⏳ أُضيف *{label[:55]}* إلى قائمة الانتظار. ترتيبك: *{position}*.",
+        f"⏳ أُضيف {label[:55]} إلى قائمة الانتظار. ترتيبك: {position}.",
+        parse_mode=None,
         reply_markup=markup,
     )
     return job
@@ -574,7 +610,11 @@ def enqueue_download(chat_id, label, action):
 
 def queue_audio_download(chat_id, query, quality, label="الأغنية"):
     def action():
-        status_message = bot.send_message(chat_id, f"⬇️ جاري تجهيز *{label[:70]}* للتحميل...")
+        status_message = bot.send_message(
+            chat_id,
+            f"⬇️ جاري تجهيز {label[:70]} للتحميل...",
+            parse_mode=None,
+        )
         send_audio(chat_id, query, quality, status_message.message_id)
 
     return enqueue_download(chat_id, label, action)
@@ -1128,21 +1168,58 @@ def inline_search(iq):
         print(f"[Inline] Ignored expired query: {error}")
 
 def start_health_check_server():
+    """Serve health checks and Telegram updates for managed Webhook deployments."""
     port = int(os.environ.get("PORT", "8000"))
+
     class HealthHandler(http.server.BaseHTTPRequestHandler):
-        def do_GET(self):
-            self.send_response(200)
+        def _send_text(self, status: int, body: str):
+            payload = body.encode("utf-8")
+            self.send_response(status)
             self.send_header("Content-type", "text/plain; charset=utf-8")
+            self.send_header("Content-Length", str(len(payload)))
             self.end_headers()
-            self.wfile.write(b"Fel7o Media Pro is running 24/7!")
+            self.wfile.write(payload)
+
+        def do_GET(self):
+            if self.path in {"/", "/health", "/healthz"}:
+                self._send_text(200, "Fel7o Media Pro is running")
+            else:
+                self._send_text(404, "Not found")
+
+        def do_POST(self):
+            request_path = self.path.split("?", 1)[0]
+            if not config.WEBHOOK_URL or request_path != config.WEBHOOK_PATH:
+                self._send_text(404, "Not found")
+                return
+
+            received_secret = self.headers.get("X-Telegram-Bot-Api-Secret-Token", "")
+            if not secrets.compare_digest(received_secret, config.WEBHOOK_SECRET):
+                self._send_text(403, "Forbidden")
+                return
+
+            try:
+                content_length = int(self.headers.get("Content-Length", "0"))
+                if content_length <= 0 or content_length > 2 * 1024 * 1024:
+                    self._send_text(413, "Invalid payload size")
+                    return
+                body = self.rfile.read(content_length).decode("utf-8")
+                update = types.Update.de_json(body)
+                if update is None:
+                    self._send_text(400, "Invalid Telegram update")
+                    return
+                bot.process_new_updates([update])
+                self._send_text(200, "ok")
+            except Exception as error:
+                print(f"[Webhook] Update processing failed: {error}")
+                self._send_text(500, "Webhook processing failed")
 
         def log_message(self, format, *args):
-            return  # Suppress noisy logs
+            return  # Suppress noisy health-check logs.
 
     def _serve():
         try:
-            socketserver.TCPServer.allow_reuse_address = True
-            with socketserver.TCPServer(("0.0.0.0", port), HealthHandler) as httpd:
+            socketserver.ThreadingTCPServer.allow_reuse_address = True
+            with socketserver.ThreadingTCPServer(("0.0.0.0", port), HealthHandler) as httpd:
                 print(f"[HealthCheck] Server listening on 0.0.0.0:{port}")
                 httpd.serve_forever()
         except Exception as err:
@@ -1201,6 +1278,30 @@ if __name__ == "__main__":
                 bot.send_message(config.ADMIN_CHAT_ID, caption, parse_mode="Markdown")
         except Exception as e:
             print(f"[Notify Admin Error] {e}")
+
+    if config.WEBHOOK_URL:
+        webhook_url = config.WEBHOOK_URL
+        if not webhook_url.endswith(config.WEBHOOK_PATH):
+            webhook_url += config.WEBHOOK_PATH
+        try:
+            bot.remove_webhook()
+            bot.set_webhook(
+                url=webhook_url,
+                secret_token=config.WEBHOOK_SECRET,
+                drop_pending_updates=False,
+            )
+            print(f"[Webhook] Active at {config.WEBHOOK_PATH}")
+        except Exception as error:
+            raise RuntimeError(f"Unable to configure Telegram Webhook: {error}") from error
+
+        # Keep the HTTP server and queue workers alive without polling.
+        while True:
+            time.sleep(3600)
+
+    try:
+        bot.remove_webhook()
+    except Exception as error:
+        print(f"[Webhook] Polling mode cleanup notice: {error}")
 
     while True:
         try:

@@ -5,4 +5,25 @@ services:
     plan: free
     region: oregon
     branch: main
-
+    healthCheckPath: /health
+    envVars:
+      - key: BOT_TOKEN
+        sync: false
+      - key: BOT_USERNAME
+        sync: false
+      - key: WEBHOOK_URL
+        sync: false
+      - key: WEBHOOK_SECRET
+        sync: false
+      - key: ADMIN_CHAT_ID
+        sync: false
+      - key: SPOTIFY_CLIENT_ID
+        sync: false
+      - key: SPOTIFY_CLIENT_SECRET
+        sync: false
+      - key: SPOTIFY_REDIRECT_URI
+        sync: false
+      - key: DEFAULT_BITRATE
+        value: "320"
+      - key: SPOTIFY_MONITOR_ENABLED
+        value: "false"

@@ -1177,6 +1177,18 @@ if __name__ == "__main__":
         if config.SPOTIFY_MONITOR_ENABLED:
             sp_poller.start()
     print("[Fel7o Media Pro] Ready! Bot: @" + BOT_USERNAME)
+    if config.ADMIN_CHAT_ID:
+        try:
+            server_name = "سيرفرات GitHub Cloud ☁️" if os.environ.get("GITHUB_ACTIONS") else "السحابة السحابية ☁️"
+            bot.send_message(
+                config.ADMIN_CHAT_ID,
+                f"🚀 *Fel7o Media Pro يعمل الآن بنجاح على {server_name}!*\n\n"
+                f"✅ البوت متصل وشغال 24/7 ومستقل تماماً عن جهازك.",
+                parse_mode="Markdown"
+            )
+        except Exception as e:
+            print(f"[Notify Admin Error] {e}")
+
     while True:
         try:
             bot.infinity_polling(timeout=60, long_polling_timeout=60)

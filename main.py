@@ -1179,13 +1179,13 @@ if __name__ == "__main__":
     print("[Fel7o Media Pro] Ready! Bot: @" + BOT_USERNAME)
     if config.ADMIN_CHAT_ID:
         try:
-            server_name = "سيرفرات GitHub Cloud ☁️" if os.environ.get("GITHUB_ACTIONS") else "السحابة السحابية ☁️"
-            bot.send_message(
-                config.ADMIN_CHAT_ID,
-                f"🚀 *Fel7o Media Pro يعمل الآن بنجاح على {server_name}!*\n\n"
-                f"✅ البوت متصل وشغال 24/7 ومستقل تماماً عن جهازك.",
-                parse_mode="Markdown"
+            server_name = "GitHub Cloud ☁️" if os.environ.get("GITHUB_ACTIONS") else "السحابة السحابية ☁️"
+            msg_text = (
+                "\u200f🚀 *تم تشغيل بوت «Fel7o Media Pro» بنجاح!*\n\n"
+                f"\u200f☁️ *السيرفر:* {server_name}\n"
+                "\u200f✅ *الحالة:* متصل ويعمل 24/7 بشكل سحابي مستقل عن جهازك."
             )
+            bot.send_message(config.ADMIN_CHAT_ID, msg_text, parse_mode="Markdown")
         except Exception as e:
             print(f"[Notify Admin Error] {e}")
 
